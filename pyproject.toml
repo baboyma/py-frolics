@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "py-frolics"
+version = "0.1.0"
+description = "Playful activities written by ground-ups and for kids"
+authors = ["Baboyma Kagniniwa <baboyma@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pillow = "^11.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
