@@ -6,6 +6,7 @@ SOURCE: https://blog.teclado.com/write-snake-game-python-tkinter-part-1/
 import tkinter as tk
 from random import randint
 from PIL import Image, ImageTk
+import copy
 
 MOVE_LEN = 20
 MPS = 5
@@ -46,6 +47,13 @@ class Snake():
         self.height = height
         self.app.geometry(f"{width}x{height}")
 
+        # Default GUI Font and Padding
+        self.fontfamily = "Verdana"
+        self.fontsize = 15
+        self.padx = 5
+        self.pady = self.padx
+        self.pad = self.padx * 2
+
         # Preset links to key image assets
         self.load_assets()
 
@@ -55,57 +63,73 @@ class Snake():
         # Initial Score
         self.score = 0
 
-        # Initial position of snake & food
-        self.snake_positions = [(100, 100), (80, 100), (60, 100)]
-        self.food_position = (200, 200)
+        # Snake positions
+        self.snake_init_positions = [(100, 100), (80, 100), (60, 100)]
+        self.snake_positions = copy.deepcopy(self.snake_init_positions)
+
+        # Food positions
+        self.food_init_position = (200, 200)
+        self.food_position = copy.deepcopy(self.food_init_position)
+
+        # Action - Used to cancel after() when game stops
+        self.action = ""
 
         # Initiate Application
         self.initiate()
 
     def load_assets(self):
-        try:
-            self.snake_body_image = Image.open("./py_frolics/assets/snake.png")
-            self.snake_body = ImageTk.PhotoImage(self.snake_body_image)
+        # Default icon/image size
+        self.size = 20
 
-            self.food_image = Image.open("./py_frolics/assets/food.png")
+        try:
+            # Snake head
+            self.snake_head_image = Image.open("./py_frolics/assets/head.png").resize(size = (self.size, self.size), resample=3)
+            self.snake_head = ImageTk.PhotoImage(self.snake_head_image)
+            # Snake body
+            self.snake_body_image = Image.open("./py_frolics/assets/snake.png").resize(size = (self.size, self.size), resample=3)
+            self.snake_body = ImageTk.PhotoImage(self.snake_body_image)
+            # Food/Apple
+            self.food_image = Image.open("./py_frolics/assets/apple.png").resize(size = (self.size, self.size), resample=3)
             self.food = ImageTk.PhotoImage(self.food_image)
 
         except IOError as error:
             print(error)
-            root.destroy()
+            self.app.destroy()
 
     def initiate(self):
         # App Header
-        self.header = tk.Frame(app, padx=5, pady=5)
+        self.header = tk.Frame(self.app, padx=self.padx, pady=self.pady)
         self.header.pack(fill = "x")
 
         self.description = tk.Label(self.header,
                                     text = "SNAKE GAME\nTHE GOAL IS TO GET THE SNAKE TO EAT FOOD\nWITHOUT GETTING OUT OF THE RESTRICTED AREA.",
                                     font = ("Verdana", 15),
-                                    pady=10)
+                                    pady=self.pad)
 
         self.description.pack()
 
         # Add toolbar
-        self.toolbar = tk.Frame(app, padx=5, pady=5)
+        self.toolbar = tk.Frame(self.app, padx=self.padx, pady=self.pady)
         self.toolbar.pack(fill = "x")
 
         # Toolbar - Show
         self.show = tk.Button(self.toolbar,
                               text="SHOW GAME",
                               cursor="hand2",
-                              padx=10, pady=10, bd = 2,
-                              command=self.build_game)
+                              padx=self.pad, pady=self.pad, bd = 2,
+                              state=tk.NORMAL,
+                              command=self.build_gui)
 
         self.show.pack(side=tk.LEFT)
-        #self.show.lift()
+        self.show.lift()
 
-    def build_game(self):
+    def build_gui(self):
         # Toolbar - Start
         self.start = tk.Button(self.toolbar,
                                text="START",
                                cursor = "hand2",
-                               padx=10, pady=10,
+                               padx=self.pad, pady=self.pad,
+                               state=tk.NORMAL,
                                command=self.start_game)
 
         self.start.pack(side=tk.LEFT)
@@ -114,11 +138,19 @@ class Snake():
         self.stop = tk.Button(self.toolbar,
                               text="STOP",
                               cursor = "hand2",
-                              padx=10, pady=10,
-                              state=tk.NORMAL,
+                              padx=self.pad, pady=self.pad,
+                              state=tk.DISABLED,
                               command=self.end_game)
 
         self.stop.pack(side=tk.LEFT)
+
+        # Toolbar - Score board
+        self.scoreboard = tk.Label(self.toolbar,
+                                   text = f"SCORE: {self.score}",
+                                   font = (self.fontfamily, self.fontsize),
+                                   padx=self.pad, pady=self.pad)
+
+        self.scoreboard.pack(side=tk.LEFT)
 
         # Add Game Canvas & bind key press events
         self.create_objects()
@@ -132,22 +164,30 @@ class Snake():
         self.start.config(state=tk.DISABLED)
         self.stop.config(state=tk.NORMAL)
 
+        # Check re-start
+        if "snake" not in self.canvas.image_names():
+            self.create_objects()
+            self.canvas.bind_all("<Key>", self.on_key_press)
+
         # Active Snake motion
-        self.canvas.after(SPEED, self.perform_actions)
+        self.action = self.canvas.after(SPEED, self.perform_actions)
 
     def end_game(self):
         self.canvas.delete(tk.ALL)
         self.canvas.create_text(
             self.canvas.winfo_width() / 2,
             self.canvas.winfo_height() / 2,
-            text = f"GAME OVER! You scored {self.score}!",
+            text = f"GAME OVER!\n\nYou scored {self.score} points!",
             fill = "#FFF",
-            font = ("", 15)
+            font = (self.fontfamily, self.fontsize)
         )
 
         # All re-start at the end of the game
         self.stop.config(state=tk.DISABLED)
         self.start.config(state=tk.NORMAL)
+
+        # Cancel action
+        self.canvas.after_cancel(self.action)
 
     def restart_game(self):
         self.canvas.destroy()
@@ -155,33 +195,46 @@ class Snake():
         self.start_game()
 
     def create_objects(self):
-        # Create New Canvas
-        self.canvas = tk.Canvas(self.app,
-                                width=self.width - 20,
-                                height=self.height - 100,
-                                background="black",
-                                highlightthickness=0)
+        # Create new Canvas
+        # Dimensions and top Gap
+        canvas_tgap = self.header.winfo_height() + self.toolbar.winfo_height() + (self.pad * 2)
+        canvas_width = self.width - self.pad
+        canvas_height = self.height - canvas_tgap
+        canvas_grid_gap = 7
 
-        # Scoring box - Text
-        self.canvas.create_text(
-            35, 12,
-            text = f"Score: {self.score}",
-            tag = "score", fill="#FFF", font=15
+        # Canvas
+        if hasattr(self, "canvas") is False:
+            self.canvas = tk.Canvas(self.app,
+                                    width = canvas_width,
+                                    height = canvas_height,
+                                    background="black",
+                                    highlightthickness=0)
+
+            self.canvas.pack()
+        else:
+            self.canvas.delete(tk.ALL)
+
+        # Play area - rectangle
+        self.canvas.create_rectangle(
+            canvas_grid_gap,
+            canvas_grid_gap,
+            canvas_width - 7,
+            canvas_height - 7,
+            outline="#525d69"
         )
 
         # Snake
-        for x_position, y_position in self.snake_positions:
+        for x_position, y_position in self.snake_init_positions:
             self.canvas.create_image(
                 x_position, y_position, image=self.snake_body, tag="snake"
             )
 
         # Food
-        self.canvas.create_image(*self.food_position, image=self.food, tag="food")
+        self.canvas.create_image(*self.food_init_position, image=self.food, tag="food")
 
-        # Play area - rectangle
-        self.canvas.create_rectangle(7, 27, 586, 613, outline="#525d69")
-
-        self.canvas.pack()
+        # Reset Score
+        self.score = 0
+        self.update_score(points = 0)
 
     def move_snake(self):
         # Identify the position of the head of the snake
@@ -204,6 +257,7 @@ class Snake():
             self.canvas.coords(segment, pos)
 
     def move_food(self):
+        # RULE - Avoid replacing the food on top of the snake's head
         while True:
             pos_x = randint(1, 29) * MOVE_LEN
             pos_y = randint(3, 30) * MOVE_LEN
@@ -222,18 +276,25 @@ class Snake():
 
         self.canvas.after(SPEED, self.perform_actions)
 
+    def update_score(self, points = 1):
+        # Keep track of player's score
+        self.score += points
+        self.scoreboard.config(text = f"SCORE: {self.score}")
+
     def check_collisions(self):
+        # RULE - Stay within the canvas and do not bite yourself
         head_curr_x, head_curr_y = self.snake_positions[0]
 
         return(
-            head_curr_x in (0, 600)
-            or head_curr_y in (20, 620)
+            head_curr_x in (0, self.width)
+            or head_curr_y in (20, self.height)
             or (head_curr_x, head_curr_y) in self.snake_positions[1:]
         )
 
     def check_food_collision(self):
         if self.snake_positions[0] == self.food_position:
-            self.score += 1
+            self.update_score()
+
             self.snake_positions.append(self.snake_positions[-1])
 
             self.canvas.create_image(
@@ -243,10 +304,12 @@ class Snake():
             self.food_position = self.move_food()
             self.canvas.coords(self.canvas.find_withtag("food"), *self.food_position)
 
-            score = self.canvas.find_withtag("score")
-            self.canvas.itemconfigure(score, text = f"Score: {self.score}", tag="scrore")
+            #score = self.canvas.find_withtag("score")
+            #self.canvas.itemconfigure(score, text = f"Score: {self.score}", tag="score")
+            #self.scoreboard.config(text = f"SCORE: {self.score}")
 
     def on_key_press(self, e):
+        # RULE - Snake now allowed to go backward
         new_direction = e.keysym
 
         all_directions = ("Up", "Down", "Left", "Right")
