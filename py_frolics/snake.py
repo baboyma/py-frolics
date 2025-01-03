@@ -8,8 +8,8 @@ from random import randint
 from PIL import Image, ImageTk
 import copy
 
-MOVE_LEN = 20
-MPS = 5
+MOVE_LEN = 20 # Move by the size of the snake pixels
+MPS = 5       # Move Per Second
 SPEED = 1000 // MPS
 
 class Demo1:
@@ -57,22 +57,21 @@ class Snake():
         # Preset links to key image assets
         self.load_assets()
 
-        # Direction
+        # Directions
         self.direction = "Right"
+        self.directions = ("Up", "Down", "Left", "Right")
+        self.opposites = ({"Up", "Down"}, {"Left", "Right"})
 
         # Initial Score
         self.score = 0
 
-        # Snake positions
+        # Snake positions - initial positions should not change after each session
         self.snake_init_positions = [(100, 100), (80, 100), (60, 100)]
         self.snake_positions = copy.deepcopy(self.snake_init_positions)
 
-        # Food positions
+        # Food positions - Retain initial food position after each sessin
         self.food_init_position = (200, 200)
         self.food_position = copy.deepcopy(self.food_init_position)
-
-        # Action - Used to cancel after() when game stops
-        self.action = ""
 
         # Initiate Application
         self.initiate()
@@ -144,6 +143,14 @@ class Snake():
 
         self.stop.pack(side=tk.LEFT)
 
+        # Toolbar - Movement Direction
+        self.movement = tk.Label(self.toolbar,
+                                 text = f"MOVE: {self.direction}",
+                                 font = (self.fontfamily, self.fontsize),
+                                 padx=self.pad, pady=self.pad)
+
+        self.movement.pack(side=tk.LEFT)
+
         # Toolbar - Score board
         self.scoreboard = tk.Label(self.toolbar,
                                    text = f"SCORE: {self.score}",
@@ -169,8 +176,8 @@ class Snake():
             self.create_objects()
             self.canvas.bind_all("<Key>", self.on_key_press)
 
-        # Active Snake motion
-        self.action = self.canvas.after(SPEED, self.perform_actions)
+        # Activate snake motion
+        self.canvas.after(SPEED, self.perform_actions)
 
     def end_game(self):
         self.canvas.delete(tk.ALL)
@@ -187,7 +194,7 @@ class Snake():
         self.start.config(state=tk.NORMAL)
 
         # Cancel action
-        self.canvas.after_cancel(self.action)
+        #self.canvas.after_cancel(self.action)
 
     def restart_game(self):
         self.canvas.destroy()
@@ -196,11 +203,20 @@ class Snake():
 
     def create_objects(self):
         # Create new Canvas
+
         # Dimensions and top Gap
         canvas_tgap = self.header.winfo_height() + self.toolbar.winfo_height() + (self.pad * 2)
         canvas_width = self.width - self.pad
         canvas_height = self.height - canvas_tgap
         canvas_grid_gap = 7
+
+        # Play Zone
+        self._play_zone = {
+            "x0": canvas_grid_gap,
+            "y0": canvas_grid_gap,
+            "x1": canvas_width - canvas_grid_gap,
+            "y1": canvas_height - canvas_grid_gap
+        }
 
         # Canvas
         if hasattr(self, "canvas") is False:
@@ -216,10 +232,10 @@ class Snake():
 
         # Play area - rectangle
         self.canvas.create_rectangle(
-            canvas_grid_gap,
-            canvas_grid_gap,
-            canvas_width - 7,
-            canvas_height - 7,
+            self._play_zone["x0"],
+            self._play_zone["y0"],
+            self._play_zone["x1"],
+            self._play_zone["y1"],
             outline="#525d69"
         )
 
@@ -259,11 +275,16 @@ class Snake():
     def move_food(self):
         # RULE - Avoid replacing the food on top of the snake's head
         while True:
-            pos_x = randint(1, 29) * MOVE_LEN
-            pos_y = randint(3, 30) * MOVE_LEN
+            #pos_x = randint(1, 29) * MOVE_LEN
+            pos_x = randint(self._play_zone["x0"],
+                            self._play_zone["x1"])
+            #pos_y = randint(3, 30) * MOVE_LEN
+            pos_y = randint(self._play_zone["y0"],
+                            self._play_zone["y1"])
 
             food_pos = (pos_x, pos_y)
 
+            # Exit loop only when food is not on the snake
             if food_pos not in self.snake_positions:
                 return food_pos
 
@@ -281,43 +302,43 @@ class Snake():
         self.score += points
         self.scoreboard.config(text = f"SCORE: {self.score}")
 
+    def update_direction(self, dir = ""):
+        # Update movement direction UI
+        self.direction = self.directions[0] if dir == "" else dir
+        self.movement.config(text = f"MOVE: {self.direction}")
+
     def check_collisions(self):
         # RULE - Stay within the canvas and do not bite yourself
         head_curr_x, head_curr_y = self.snake_positions[0]
 
         return(
-            head_curr_x in (0, self.width)
-            or head_curr_y in (20, self.height)
+            head_curr_x in (self._play_zone["x0"], self._play_zone["x1"])
+            or head_curr_y in (self._play_zone["y0"], self._play_zone["y1"])
             or (head_curr_x, head_curr_y) in self.snake_positions[1:]
         )
 
     def check_food_collision(self):
         if self.snake_positions[0] == self.food_position:
-            self.update_score()
-
+            # Increase the length of the snake
             self.snake_positions.append(self.snake_positions[-1])
-
+            # Redraw the snake
             self.canvas.create_image(
                 *self.snake_positions[-1], image=self.snake_body, tag="snake"
             )
-
+            # Relocate food icon
             self.food_position = self.move_food()
             self.canvas.coords(self.canvas.find_withtag("food"), *self.food_position)
 
-            #score = self.canvas.find_withtag("score")
-            #self.canvas.itemconfigure(score, text = f"Score: {self.score}", tag="score")
-            #self.scoreboard.config(text = f"SCORE: {self.score}")
+            # Update score: +1
+            self.update_score(points=1)
 
     def on_key_press(self, e):
         # RULE - Snake now allowed to go backward
         new_direction = e.keysym
 
-        all_directions = ("Up", "Down", "Left", "Right")
-        opposites = ({"Up", "Down"}, {"Left", "Right"})
-
-        if (new_direction in all_directions
-            and {new_direction, self.direction} not in opposites):
-            self.direction = new_direction
+        if (new_direction in self.directions
+            and {new_direction, self.direction} not in self.opposites):
+            self.update_direction(new_direction)
 
 app = tk.Tk()
 app.title("SNAKE GAME")
