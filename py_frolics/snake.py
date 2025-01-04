@@ -82,13 +82,13 @@ class Snake():
 
         try:
             # Snake head
-            self.snake_head_image = Image.open("./py_frolics/assets/head.png").resize(size = (self.size, self.size), resample=3)
+            self.snake_head_image = Image.open("./py_frolics/assets/images/head.png").resize(size = (self.size, self.size), resample=3)
             self.snake_head = ImageTk.PhotoImage(self.snake_head_image)
             # Snake body
-            self.snake_body_image = Image.open("./py_frolics/assets/snake.png").resize(size = (self.size, self.size), resample=3)
+            self.snake_body_image = Image.open("./py_frolics/assets/images/snake.png").resize(size = (self.size, self.size), resample=3)
             self.snake_body = ImageTk.PhotoImage(self.snake_body_image)
             # Food/Apple
-            self.food_image = Image.open("./py_frolics/assets/apple.png").resize(size = (self.size, self.size), resample=3)
+            self.food_image = Image.open("./py_frolics/assets/images/apple.png").resize(size = (self.size, self.size), resample=3)
             self.food = ImageTk.PhotoImage(self.food_image)
 
         except IOError as error:
@@ -180,6 +180,11 @@ class Snake():
         self.canvas.after(SPEED, self.perform_actions)
 
     def end_game(self):
+        # All re-start at the end of the game
+        self.stop.config(state=tk.DISABLED)
+        self.start.config(state=tk.NORMAL)
+
+        # Remove game items
         self.canvas.delete(tk.ALL)
         self.canvas.create_text(
             self.canvas.winfo_width() / 2,
@@ -188,10 +193,6 @@ class Snake():
             fill = "#FFF",
             font = (self.fontfamily, self.fontsize)
         )
-
-        # All re-start at the end of the game
-        self.stop.config(state=tk.DISABLED)
-        self.start.config(state=tk.NORMAL)
 
         # Cancel action
         #self.canvas.after_cancel(self.action)
@@ -266,9 +267,10 @@ class Snake():
         elif self.direction == "Up":
             head_next_pos = (head_curr_x, head_curr_y - MOVE_LEN)
 
-        # New position
+        # New positions - tail is relocated ahead
         self.snake_positions = [head_next_pos] + self.snake_positions[:-1]
 
+        # Update locations of snake's components
         for segment, pos in zip(self.canvas.find_withtag("snake"), self.snake_positions):
             self.canvas.coords(segment, pos)
 
@@ -278,6 +280,7 @@ class Snake():
             #pos_x = randint(1, 29) * MOVE_LEN
             pos_x = randint(self._play_zone["x0"],
                             self._play_zone["x1"])
+
             #pos_y = randint(3, 30) * MOVE_LEN
             pos_y = randint(self._play_zone["y0"],
                             self._play_zone["y1"])
@@ -291,8 +294,19 @@ class Snake():
     def perform_actions(self):
         if self.check_collisions():
             self.end_game()
+            return False # Stop there
 
-        self.check_food_collision()
+        if self.check_food_consumption():
+            # Update score: +1
+            self.update_score(points=1)
+
+            # Relocate food
+            self.relocate_food()
+
+            # Update snake length
+            self.update_snake()
+
+        # Move snake forward
         self.move_snake()
 
         self.canvas.after(SPEED, self.perform_actions)
@@ -307,30 +321,45 @@ class Snake():
         self.direction = self.directions[0] if dir == "" else dir
         self.movement.config(text = f"MOVE: {self.direction}")
 
+    def relocate_food(self):
+        # Relocate food icon
+        self.food_position = self.move_food()
+        self.canvas.coords(self.canvas.find_withtag("food"), *self.food_position)
+
+    def update_snake(self):
+        # Increase the length of the snake
+        self.snake_positions.append(self.snake_positions[-1])
+        # Redraw the snake
+        self.canvas.create_image(
+            *self.snake_positions[-1], image=self.snake_body, tag="snake"
+        )
+
     def check_collisions(self):
         # RULE - Stay within the canvas and do not bite yourself
         head_curr_x, head_curr_y = self.snake_positions[0]
 
+        print(head_curr_x, head_curr_y)
+        print(self.snake_positions[1:])
+        print((self._play_zone["x0"], self._play_zone["x1"]),
+              (self._play_zone["y0"], self._play_zone["y1"]))
+
         return(
+            #head_curr_x in (7, 583)
             head_curr_x in (self._play_zone["x0"], self._play_zone["x1"])
+            #or head_curr_y in (7, 449)
             or head_curr_y in (self._play_zone["y0"], self._play_zone["y1"])
             or (head_curr_x, head_curr_y) in self.snake_positions[1:]
         )
 
-    def check_food_collision(self):
-        if self.snake_positions[0] == self.food_position:
-            # Increase the length of the snake
-            self.snake_positions.append(self.snake_positions[-1])
-            # Redraw the snake
-            self.canvas.create_image(
-                *self.snake_positions[-1], image=self.snake_body, tag="snake"
-            )
-            # Relocate food icon
-            self.food_position = self.move_food()
-            self.canvas.coords(self.canvas.find_withtag("food"), *self.food_position)
+    def check_food_consumption(self):
+        # Check food status
+        consumed = False
 
-            # Update score: +1
-            self.update_score(points=1)
+        # Consumption occurs only when snake head collide with food
+        if self.snake_positions[0] == self.food_position:
+            consumed = True
+
+        return consumed
 
     def on_key_press(self, e):
         # RULE - Snake now allowed to go backward
