@@ -7,6 +7,7 @@ import tkinter as tk
 from random import randint
 from PIL import Image, ImageTk
 import copy
+from pygame import mixer
 
 MOVE_LEN = 20 # Move by the size of the snake pixels
 MPS = 5       # Move Per Second
@@ -56,6 +57,7 @@ class Snake():
 
         # Preset links to key image assets
         self.load_assets()
+        mixer.init()
 
         # Directions
         self.direction = "Right"
@@ -90,6 +92,11 @@ class Snake():
             # Food/Apple
             self.food_image = Image.open("./py_frolics/assets/images/apple.png").resize(size = (self.size, self.size), resample=3)
             self.food = ImageTk.PhotoImage(self.food_image)
+
+            # Sounds
+            self.sound_beep = "./py_frolics/assets/sounds/beep.wav"
+            self.sound_error = "./py_frolics/assets/sounds/beep-error.wav"
+            self.sound_burb = "./py_frolics/assets/sounds/burb-1.wav"
 
         except IOError as error:
             print(error)
@@ -358,6 +365,7 @@ class Snake():
         # Consumption occurs only when snake head collide with food
         if self.snake_positions[0] == self.food_position:
             consumed = True
+            self.play_sound(soundfile=self.sound_burb)
 
         return consumed
 
@@ -368,6 +376,10 @@ class Snake():
         if (new_direction in self.directions
             and {new_direction, self.direction} not in self.opposites):
             self.update_direction(new_direction)
+
+    def play_sound(self, soundfile):
+        mixer.music.load(soundfile)
+        mixer.music.play()
 
 app = tk.Tk()
 app.title("SNAKE GAME")
