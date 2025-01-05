@@ -67,6 +67,9 @@ class Snake():
         # Initial Score
         self.score = 0
 
+        # Perform Action
+        self.action = ""
+
         # Snake positions - initial positions should not change after each session
         self.snake_init_positions = [(100, 100), (80, 100), (60, 100)]
         self.snake_positions = copy.deepcopy(self.snake_init_positions)
@@ -94,9 +97,9 @@ class Snake():
             self.food = ImageTk.PhotoImage(self.food_image)
 
             # Sounds
-            self.sound_beep = "./py_frolics/assets/sounds/beep.wav"
-            self.sound_error = "./py_frolics/assets/sounds/beep-error.wav"
-            self.sound_burb = "./py_frolics/assets/sounds/burb-1.wav"
+            self.sound_beep = "py_frolics/assets/sounds/beep.wav"
+            self.sound_error = "py_frolics/assets/sounds/beep-error.wav"
+            self.sound_burb = "py_frolics/assets/sounds/burp-1.wav"
 
         except IOError as error:
             print(error)
@@ -184,7 +187,7 @@ class Snake():
             self.canvas.bind_all("<Key>", self.on_key_press)
 
         # Activate snake motion
-        self.canvas.after(SPEED, self.perform_actions)
+        self.action = self.canvas.after(SPEED, self.perform_actions)
 
     def end_game(self):
         # All re-start at the end of the game
@@ -202,7 +205,7 @@ class Snake():
         )
 
         # Cancel action
-        #self.canvas.after_cancel(self.action)
+        self.canvas.after_cancel(self.action)
 
     def restart_game(self):
         self.canvas.destroy()
@@ -285,12 +288,12 @@ class Snake():
         # RULE - Avoid replacing the food on top of the snake's head
         while True:
             #pos_x = randint(1, 29) * MOVE_LEN
-            pos_x = randint(self._play_zone["x0"],
-                            self._play_zone["x1"])
+            pos_x = randint(self._play_zone["x0"], self._play_zone["x1"]//MOVE_LEN) * MOVE_LEN
+            #pos_x = randint(self._play_zone["x0"], self._play_zone["x1"])
 
             #pos_y = randint(3, 30) * MOVE_LEN
-            pos_y = randint(self._play_zone["y0"],
-                            self._play_zone["y1"])
+            pos_y = randint(self._play_zone["y0"], self._play_zone["y1"]//MOVE_LEN) * MOVE_LEN
+            #pos_y = randint(self._play_zone["y0"], self._play_zone["y1"])
 
             food_pos = (pos_x, pos_y)
 
@@ -300,6 +303,7 @@ class Snake():
 
     def perform_actions(self):
         if self.check_collisions():
+            self.play_sound(soundfile=self.sound_error)
             self.end_game()
             return False # Stop there
 
@@ -316,7 +320,7 @@ class Snake():
         # Move snake forward
         self.move_snake()
 
-        self.canvas.after(SPEED, self.perform_actions)
+        self.action = self.canvas.after(SPEED, self.perform_actions)
 
     def update_score(self, points = 1):
         # Keep track of player's score
@@ -325,6 +329,7 @@ class Snake():
 
     def update_direction(self, dir = ""):
         # Update movement direction UI
+        self.play_sound(soundfile=self.sound_beep)
         self.direction = self.directions[0] if dir == "" else dir
         self.movement.config(text = f"MOVE: {self.direction}")
 
@@ -345,16 +350,16 @@ class Snake():
         # RULE - Stay within the canvas and do not bite yourself
         head_curr_x, head_curr_y = self.snake_positions[0]
 
-        print(head_curr_x, head_curr_y)
-        print(self.snake_positions[1:])
-        print((self._play_zone["x0"], self._play_zone["x1"]),
-              (self._play_zone["y0"], self._play_zone["y1"]))
+        #print(head_curr_x, head_curr_y)
+        #print(self.snake_positions[1:])
 
         return(
             #head_curr_x in (7, 583)
-            head_curr_x in (self._play_zone["x0"], self._play_zone["x1"])
+            #head_curr_x in (self._play_zone["x0"]-MOVE_LEN, self._play_zone["x1"]+MOVE_LEN)
+            head_curr_x not in range(self._play_zone["x0"], self._play_zone["x1"])
             #or head_curr_y in (7, 449)
-            or head_curr_y in (self._play_zone["y0"], self._play_zone["y1"])
+            #or head_curr_y in (self._play_zone["y0"], self._play_zone["y1"])
+            or head_curr_y not in range(self._play_zone["y0"], self._play_zone["y1"])
             or (head_curr_x, head_curr_y) in self.snake_positions[1:]
         )
 
