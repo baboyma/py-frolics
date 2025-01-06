@@ -22,6 +22,10 @@ class Snake():
         # Root app/window
         self.app = app
 
+        # App description
+        self.name = "Snake Game"
+        self.help = "Snake is a genre of action video games where the player maneuvers the end of a growing line, often themed as a snake."
+
         # Dimensions
         self.width = width
         self.height = height
@@ -59,6 +63,12 @@ class Snake():
 
         # Initiate Application
         self.initiate()
+
+    def __str__(self):
+        return f"{self.name} - {self.help}"
+
+    def intro(self):
+        print(self.description)
 
     def load_assets(self):
         # Default icon/image size
@@ -368,12 +378,15 @@ class Snake():
 
 def main():
     app = tk.Tk()
+
     app.title("SNAKE GAME")
     app.resizable(False, False)
     app.tk.call("tk", "scaling", 4.0)
     app.geometry("500x500")
 
-    board = Snake(app, width=600, height=620)
+    apple_eater = Snake(app = app, width=600, height=620)
+
+    print(apple_eater)
 
     app.mainloop()
 
