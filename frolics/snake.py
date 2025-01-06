@@ -13,27 +13,6 @@ MOVE_LEN = 20 # Move by the size of the snake pixels
 MPS = 5       # Move Per Second
 SPEED = 1000 // MPS
 
-class Demo1:
-    def __init__(self, master):
-        self.master = master
-        self.frame = tk.Frame(self.master, width=500, height=500)
-        self.button1 = tk.Button(self.frame, text = 'New Window', width = 25, command = self.new_window)
-        self.button1.pack()
-        self.frame.pack()
-    def new_window(self):
-        self.newWindow = tk.Toplevel(self.master)
-        self.app = Demo2(self.newWindow)
-
-class Demo2:
-    def __init__(self, master):
-        self.master = master
-        self.frame = tk.Frame(self.master)
-        self.quitButton = tk.Button(self.frame, text = 'Quit', width = 25, command = self.close_windows)
-        self.quitButton.pack()
-        self.frame.pack()
-    def close_windows(self):
-        self.master.destroy()
-
 class App(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
@@ -87,19 +66,19 @@ class Snake():
 
         try:
             # Snake head
-            self.snake_head_image = Image.open("./py_frolics/assets/images/head.png").resize(size = (self.size, self.size), resample=3)
+            self.snake_head_image = Image.open("frolics/assets/images/head.png").resize(size = (self.size, self.size), resample=3)
             self.snake_head = ImageTk.PhotoImage(self.snake_head_image)
             # Snake body
-            self.snake_body_image = Image.open("./py_frolics/assets/images/snake.png").resize(size = (self.size, self.size), resample=3)
+            self.snake_body_image = Image.open("frolics/assets/images/snake.png").resize(size = (self.size, self.size), resample=3)
             self.snake_body = ImageTk.PhotoImage(self.snake_body_image)
             # Food/Apple
-            self.food_image = Image.open("./py_frolics/assets/images/apple.png").resize(size = (self.size, self.size), resample=3)
+            self.food_image = Image.open("frolics/assets/images/apple.png").resize(size = (self.size, self.size), resample=3)
             self.food = ImageTk.PhotoImage(self.food_image)
 
             # Sounds
-            self.sound_beep = "py_frolics/assets/sounds/beep.wav"
-            self.sound_error = "py_frolics/assets/sounds/beep-error.wav"
-            self.sound_burb = "py_frolics/assets/sounds/burp-1.wav"
+            self.sound_beep = "frolics/assets/sounds/beep.wav"
+            self.sound_error = "frolics/assets/sounds/beep-error.wav"
+            self.sound_burb = "frolics/assets/sounds/burp-1.wav"
 
         except IOError as error:
             print(error)
@@ -386,12 +365,16 @@ class Snake():
         mixer.music.load(soundfile)
         mixer.music.play()
 
-app = tk.Tk()
-app.title("SNAKE GAME")
-app.resizable(False, False)
-app.tk.call("tk", "scaling", 4.0)
-app.geometry("500x500")
+def main():
+    app = tk.Tk()
+    app.title("SNAKE GAME")
+    app.resizable(False, False)
+    app.tk.call("tk", "scaling", 4.0)
+    app.geometry("500x500")
 
-board = Snake(app, width=600, height=620)
+    board = Snake(app, width=600, height=620)
 
-app.mainloop()
+    app.mainloop()
+
+if __name__ == "__main__":
+    main()
