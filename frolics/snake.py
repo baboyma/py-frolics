@@ -174,6 +174,7 @@ class Snake():
         self.start.config(state=tk.NORMAL)
 
         # Remove game items
+        self.canvas.unbind_all("<Key>")
         self.canvas.delete(tk.ALL)
         self.canvas.create_text(
             self.canvas.winfo_width() / 2,
@@ -234,6 +235,9 @@ class Snake():
             self.canvas.create_image(
                 x_position, y_position, image=self.snake_body, tag="snake"
             )
+
+        # Clear historical positions
+        self.snake_positions = copy.deepcopy(self.snake_init_positions)
 
         # Food
         self.canvas.create_image(*self.food_init_position, image=self.food, tag="food")
@@ -328,9 +332,6 @@ class Snake():
     def check_collisions(self):
         # RULE - Stay within the canvas and do not bite yourself
         head_curr_x, head_curr_y = self.snake_positions[0]
-
-        #print(head_curr_x, head_curr_y)
-        #print(self.snake_positions[1:])
 
         return(
             #head_curr_x in (7, 583)
