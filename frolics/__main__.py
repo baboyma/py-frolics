@@ -1,6 +1,7 @@
 import tkinter as tk
 import argparse
 from frolics.snake import Snake, main as snake_start
+from frolics.catcher import Catcher, main as catcher_start
 
 def snake_startttt():
     """ Start Snake Game from command line"""
@@ -30,6 +31,7 @@ match args.game.lower():
         snake_start()
     case "catcher":
         print("COLOR CATCHER is under development. Check back later ...")
+        catcher_start()
     case _:
         print("NO GAME specified - Running SNAKE instead ...")
         snake_start()

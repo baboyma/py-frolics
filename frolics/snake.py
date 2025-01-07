@@ -68,7 +68,7 @@ class Snake():
         return f"{self.name} - {self.help}"
 
     def intro(self):
-        print(self.description)
+        print(self.help)
 
     def load_assets(self):
         # Default icon/image size
