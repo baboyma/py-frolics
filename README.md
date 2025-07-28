@@ -17,6 +17,8 @@ GAME NIGHTS - Playful activities written by ground-ups and for kids
 
 `poetry run python -m frolics -g snake`
 
+`poetry run python snake.py`
+
 `-g` can be replaced with `--game` and is used to pass the name of the game to be executed.
 
 ## Have ideas?
